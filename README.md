@@ -84,8 +84,8 @@ requests==2.31.0
    git init
    git add .
    git commit -m "Initial commit"
-   git remote add origin https://github.com/yourusername/ddos-detection.git
-   git push -u origin main
+   git remote add origin https://github.com/Rupesh-110805/DDOS_Project.git
+   git push -u origin master
    ```
 
 2. **Deploy on Render**

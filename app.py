@@ -8,13 +8,22 @@ from datetime import datetime
 from entropy_detector import EntropyDDoSDetector
 from packet_simulator import PacketSimulator, PacketGenerator
 import logging
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
-app.config['SECRET_KEY'] = 'ddos_detection_secret_key'
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ddos_detection_secret_key')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
+# Configuration from environment variables
+ENTROPY_THRESHOLD = float(os.environ.get('ENTROPY_THRESHOLD', '2.5'))
+WINDOW_SIZE = int(os.environ.get('WINDOW_SIZE', '100'))
+PACKET_RATE_THRESHOLD = int(os.environ.get('PACKET_RATE_THRESHOLD', '50'))
+
 # Global objects
-detector = EntropyDDoSDetector(window_size=100, threshold=2.5)
+detector = EntropyDDoSDetector(window_size=WINDOW_SIZE, threshold=ENTROPY_THRESHOLD)
 simulator = PacketSimulator()
 monitoring_active = False
 simulation_thread = None
