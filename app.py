@@ -15,7 +15,7 @@ load_dotenv()
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'ddos_detection_secret_key')
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode='threading')
 
 # Configuration from environment variables
 ENTROPY_THRESHOLD = float(os.environ.get('ENTROPY_THRESHOLD', '2.5'))
