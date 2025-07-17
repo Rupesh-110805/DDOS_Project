@@ -43,10 +43,17 @@ def get_status():
     stats = detector.get_statistics()
     sim_stats = simulator.get_stats()
     
+    # Get current detection state
+    is_attack, current_entropy, current_accuracy = detector.get_current_state()
+    
     return jsonify({
         'detector_stats': stats,
         'simulator_stats': sim_stats,
         'monitoring_active': monitoring_active,
+        'current_entropy': current_entropy,
+        'current_accuracy': current_accuracy,
+        'is_attack': is_attack,
+        'packet_count': len(detector.packet_buffer),
         'timestamp': datetime.now().isoformat()
     })
 
@@ -172,15 +179,18 @@ def monitoring_loop():
                             packet['destination_ip'],
                             packet['size']
                         )
-                        
-                        # Emit real-time data to frontend
-                        socketio.emit('detection_update', {
-                            'timestamp': datetime.now().isoformat(),
-                            'entropy': entropy,
-                            'accuracy': accuracy,
-                            'is_attack': is_attack,
-                            'packet_count': len(detector.packet_buffer)
-                        })
+            
+            # Always get current detection state (even if no new packets)
+            is_attack, entropy, accuracy = detector.get_current_state()
+            
+            # Emit real-time data to frontend
+            socketio.emit('detection_update', {
+                'timestamp': datetime.now().isoformat(),
+                'entropy': entropy,
+                'accuracy': accuracy,
+                'is_attack': is_attack,
+                'packet_count': len(detector.packet_buffer)
+            })
             
             # Send statistics update
             stats = detector.get_statistics()

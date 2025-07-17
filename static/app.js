@@ -319,9 +319,35 @@ async function updateStatus() {
             updateStatistics(data.detector_stats);
         }
         
+        // Update current values from API if available
+        if (data.current_entropy !== undefined) {
+            document.getElementById('entropy-value').textContent = data.current_entropy.toFixed(2);
+        }
+        
+        if (data.current_accuracy !== undefined) {
+            document.getElementById('accuracy-value').textContent = data.current_accuracy.toFixed(2) + '%';
+        }
+        
         // Update buffer size
-        if (data.detector_stats && data.detector_stats.total_detections !== undefined) {
-            document.getElementById('buffer-size').textContent = Math.min(data.detector_stats.total_detections, 100);
+        if (data.packet_count !== undefined) {
+            document.getElementById('buffer-size').textContent = data.packet_count;
+        }
+        
+        // Update monitoring status
+        const statusIndicator = document.querySelector('.status-indicator');
+        const statusText = document.getElementById('status-text');
+        
+        if (data.monitoring_active) {
+            if (data.is_attack) {
+                statusIndicator.className = 'status-indicator status-attack';
+                statusText.textContent = 'DDoS ATTACK DETECTED!';
+            } else {
+                statusIndicator.className = 'status-indicator status-active';
+                statusText.textContent = 'Monitoring Active';
+            }
+        } else {
+            statusIndicator.className = 'status-indicator status-inactive';
+            statusText.textContent = 'Monitoring Inactive';
         }
         
     } catch (error) {

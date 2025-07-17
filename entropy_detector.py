@@ -152,6 +152,15 @@ class EntropyDDoSDetector:
         
         return min(base_accuracy, 99.0)  # Cap at 99%
     
+    def get_current_state(self) -> Tuple[bool, float, float]:
+        """
+        Get current detection state without processing new packets
+        """
+        if len(self.packet_buffer) < 10:
+            return False, 0.0, 0.0
+        
+        return self.detect_ddos()
+    
     def get_statistics(self) -> Dict:
         """
         Get current detection statistics
