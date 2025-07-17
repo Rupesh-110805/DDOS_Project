@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DDoS Detection System - Entropy Computing</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: white;
+        }
+        .dashboard-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        }
+        .metric-card {
+            background: rgba(255, 255, 255, 0.15);
+            border-radius: 10px;
+            padding: 20px;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .alert-danger {
+            background: rgba(220, 53, 69, 0.8);
+            border: 1px solid rgba(220, 53, 69, 0.9);
+        }
+        .alert-success {
+            background: rgba(25, 135, 84, 0.8);
+            border: 1px solid rgba(25, 135, 84, 0.9);
+        }
+        .alert-warning {
+            background: rgba(255, 193, 7, 0.8);
+            border: 1px solid rgba(255, 193, 7, 0.9);
+            color: #000;
+        }
+        .btn-custom {
+            background: rgba(255, 255, 255, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            color: white;
+            backdrop-filter: blur(5px);
+        }
+        .btn-custom:hover {
+            background: rgba(255, 255, 255, 0.3);
+            color: white;
+        }
+        .status-indicator {
+            width: 15px;
+            height: 15px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 10px;
+        }
+        .status-active { background-color: #28a745; }
+        .status-inactive { background-color: #6c757d; }
+        .status-attack { background-color: #dc3545; animation: blink 1s infinite; }
+        
+        @keyframes blink {
+            0%, 50% { opacity: 1; }
+            51%, 100% { opacity: 0.3; }
+        }
+        
+        .chart-container {
+            position: relative;
+            height: 300px;
+            margin: 20px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container-fluid py-4">
+        <!-- Header -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="dashboard-card p-4">
+                    <h1 class="text-center mb-3">
+                        <i class="fas fa-shield-alt"></i>
+                        DDoS Detection System
+                    </h1>
+                    <p class="text-center mb-0">
+                        Real-time DDoS attack detection using Shannon Entropy computing
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Status Row -->
+        <div class="row mb-4">
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5><i class="fas fa-heartbeat"></i> System Status</h5>
+                    <div id="system-status">
+                        <span class="status-indicator status-inactive"></span>
+                        <span id="status-text">Inactive</span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5><i class="fas fa-calculator"></i> Current Entropy</h5>
+                    <h3 id="entropy-value">0.00</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5><i class="fas fa-bullseye"></i> Accuracy</h5>
+                    <h3 id="accuracy-value">0.00%</h3>
+                </div>
+            </div>
+            <div class="col-md-3">
+                <div class="metric-card">
+                    <h5><i class="fas fa-network-wired"></i> Packet Rate</h5>
+                    <h3 id="packet-rate">0 pps</h3>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alert Row -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div id="alert-container"></div>
+            </div>
+        </div>
+
+        <!-- Control Panel -->
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="dashboard-card p-4">
+                    <h4><i class="fas fa-play-circle"></i> Detection Control</h4>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-success btn-custom" onclick="startMonitoring()">
+                            <i class="fas fa-play"></i> Start Monitoring
+                        </button>
+                        <button class="btn btn-danger btn-custom" onclick="stopMonitoring()">
+                            <i class="fas fa-stop"></i> Stop Monitoring
+                        </button>
+                        <button class="btn btn-warning btn-custom" onclick="resetSystem()">
+                            <i class="fas fa-refresh"></i> Reset System
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="dashboard-card p-4">
+                    <h4><i class="fas fa-cog"></i> Traffic Simulation</h4>
+                    <div class="d-grid gap-2">
+                        <button class="btn btn-info btn-custom" onclick="startSimulation('normal')">
+                            <i class="fas fa-signal"></i> Normal Traffic
+                        </button>
+                        <button class="btn btn-danger btn-custom" onclick="startSimulation('ddos')">
+                            <i class="fas fa-bomb"></i> DDoS Attack
+                        </button>
+                        <button class="btn btn-primary btn-custom" onclick="startSimulation('mixed')">
+                            <i class="fas fa-random"></i> Mixed Simulation
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Testing Panel -->
+        <div class="row mb-4">
+            <div class="col-12">
+                <div class="dashboard-card p-4">
+                    <h4><i class="fas fa-flask"></i> Detection Testing</h4>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <button class="btn btn-success btn-custom w-100" onclick="testDetection('normal')">
+                                <i class="fas fa-check"></i> Test Normal Traffic
+                            </button>
+                        </div>
+                        <div class="col-md-6">
+                            <button class="btn btn-danger btn-custom w-100" onclick="testDetection('ddos')">
+                                <i class="fas fa-exclamation-triangle"></i> Test DDoS Detection
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Charts Row -->
+        <div class="row">
+            <div class="col-md-6">
+                <div class="dashboard-card p-4">
+                    <h4><i class="fas fa-chart-line"></i> Entropy Over Time</h4>
+                    <div class="chart-container">
+                        <canvas id="entropyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="dashboard-card p-4">
+                    <h4><i class="fas fa-chart-bar"></i> Detection Accuracy</h4>
+                    <div class="chart-container">
+                        <canvas id="accuracyChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Statistics Row -->
+        <div class="row mt-4">
+            <div class="col-12">
+                <div class="dashboard-card p-4">
+                    <h4><i class="fas fa-chart-pie"></i> Detection Statistics</h4>
+                    <div class="row">
+                        <div class="col-md-2">
+                            <div class="metric-card">
+                                <h6>Total Detections</h6>
+                                <h4 id="total-detections">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="metric-card">
+                                <h6>Attacks Detected</h6>
+                                <h4 id="attacks-detected">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="metric-card">
+                                <h6>Avg Entropy</h6>
+                                <h4 id="avg-entropy">0.00</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="metric-card">
+                                <h6>Avg Accuracy</h6>
+                                <h4 id="avg-accuracy">0.00%</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="metric-card">
+                                <h6>Unique Sources</h6>
+                                <h4 id="unique-sources">0</h4>
+                            </div>
+                        </div>
+                        <div class="col-md-2">
+                            <div class="metric-card">
+                                <h6>Current Buffer</h6>
+                                <h4 id="buffer-size">0</h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js"></script>
+    <script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>
